@@ -1,0 +1,398 @@
+\documentclass[11pt]{article}
+\usepackage[top=1in,right=1in,bottom=1in,left=1in]{geometry}
+\usepackage{fancyvrb}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\title{C++ Coding Standards and Style Guide}
+\author{The SNO+ Code Integrity Committee\footnote{Contact: P. Jones, \href{p.jones22@physics.ox.ac.uk}{p.jones22@physics.ox.ac.uk}}}
+\begin{document}
+\maketitle
+\begin{abstract}
+This document contains coding standards, a set of rules that improve the code performance and stability, and style standards, conventions intended to improve code readability and ease of maintenance.
+\end{abstract}
+
+\tableofcontents
+\section{Coding Standards}
+\subsection{Header Guards}
+Multiple inclusions of the the same header will generally cause multiple definitions of the same class, which will cause code to not compile.
+
+To prevent this, a header guard should be used around all code in a declaration (header) file. For example:
+\begin{verbatim}
+#ifndef __RAT_ClassName__
+#define __RAT_ClassName__
+   // code here
+#endif // __RAT_ClassName__
+\end{verbatim}
+
+
+{\bf Example:} Lines 20, 21, 72 in declaration file example, section \ref{sec:ExampleDec}.
+
+\subsection{Forward declarations}
+In cases where the code does not need any information about a class (or struct), but only that it exists, it is not necessary to include the header where that class is defined. Instead, a ``forward declaration'' should be used.
+
+To forward-delcare a type, simply replace ``\#include $<$MyClass.hh$>$'' with a ``class MyClass;'' near the top of the file.
+
+Every file that is included in a declaration file will increase the compile time, therefore it is good practice to reduce the number of header files included.
+
+{\bf Example:} Line 28 in declaration file example, section \ref{sec:ExampleDec}.
+
+\subsection{Namespaces in declaration files}
+Statements like ``using namespace X'' should be avoided. Instead, code should be explicitly declared in the correct namespace. For example:
+\begin{verbatim}
+namespace RAT {
+  // code here
+}
+\end{verbatim}
+All RAT code should be declared within the RAT namespace, or in sub namespaces of RAT.
+
+\subsection{Macros and \#define}
+C-style preprocessor macros should not used in any SNO+ code, and \#define only used in header guards. Global constants if absolutely required must be given a type and a const prefix, e.g. ``const double eV = 1e-3;'' instead of ``\#define eV 1e-3''.
+
+Macros can be replaced by inline functions, enums and const statements, all of which can be checked by a compiler whilst a macro cannot be. Replacing the C style \#define with const type allows the compiler to type-check the constants.
+
+\subsection{Struct or Class}
+In C++, structs are classes with all methods and members public. For consistency with general C++ conventions, structs in RAT should only be used to hold data. That is, they have no methods.
+
+\subsection{Writing a constructor/destructor set}
+For classes that have members which are newed (pointers initialized with the ``new'' keyword), a constructor, copy constructor, and destructor set should be written. In the destructor, all ``newed'' pointers must be explicitly deleted with a ``delete'' statement to prevent memory leaks.
+
+\subsection{Inheritance}
+Object-oriented design is encouraged in RAT, and when possible a set of related classes should derive from a common base class using public inheritance. In rare cases where \href{http://www.parashift.com/c++-faq-lite/private-inheritance.html}{private or protected inheritance} could be used, a class should instead simply include and instance of the would-be base class as a member.
+
+Classes with any virtual methods must also declare a virtual destructor.
+
+{\bf Example:} Line 33 in declaration file example, section \ref{sec:ExampleDec}.
+
+\subsection{Public, protected or private class members}
+All data members in RAT should be private, and protected methods used only required for base classes. In general, classes should minimise their public interface.
+
+RAT code should follow the general C++ ``getter-setter'' convention: member variables are private, and accessible outside the class only by public ``getter'' and ``setter'' methods.
+
+{\bf Example:} Lines 35-57 show public methods and 60-62 protected members in declaration file example, section \ref{sec:ExampleDec}.
+
+\subsection{Pass-by-reference}
+In C++, there are two ways of passing variables to functions: pass-by-value and pass-by-reference. Pass-by-value means that an object is handed to the function, and the function makes a copy. This is slow and means that the function cannot modify the value of the variable in the scope from which it was called.
+
+In a pass-by-reference, the function takes as an argument not the object itself, but the memory address of that object. This means that the function acts on that object, not a copy of it, and so can make modifications. It is also much faster, since no copying is necessary. This is equivalent to using pointers, without having to worry about pointers.
+
+RAT functions should pass all variables by reference except for the following exceptions:
+\begin{itemize}
+\item Basic types, except when their value must be modified, since it is faster to copy e.g. a 32-bit integer than a 64-bit pointer.
+\item When a copy/pass by value is required
+\end{itemize}
+
+{\bf Example:} Lines 37, 38 in declaration file example, section \ref{sec:ExampleDec}.
+
+\subsection{Using const}
+SNO+ code should be fully ``const correct:'' if a local variable is used only as in input, it should be prefixed with the ``const'' keyword. If a method does not alter any of the class members it should be postfixed with const, e.g.
+\begin{verbatim}
+void GetLambda(const double energy) const;
+\end{verbatim}
+{\bf Example:} Lines 37, 38 in declaration file example, section \ref{sec:ExampleDec}.
+
+\subsection{Inline functions}
+If inline functions are used, they should be kept short: a few of lines long at most.
+
+Inline functions are copied directly into the code where ever they are called. Long inline functions will therefore lead to large code bloats if called many times.
+
+\subsection{Repeated code}
+Code should not repeated unnecessarily. Rather, it should placed into a function and called where required.
+
+\subsection{Long functions}
+Long functions (beyond a typical display page) are rarely required, and should be avoided.
+
+\subsection{Casting}
+SNO+ code should use the C++ casting syntax (e.g. ``static\_cast$<$int$>$(x)'') rather than the C syntax (e.g. ``(int)x'').
+
+This allows casts to be searched for and allows the correct type of cast to be specified by the author.
+
+\subsection{NULL}
+When referring to a pointer address, the NULL keyword should be used instead of 0.
+
+\subsection{malloc() and free()}
+The malloc and free functions should not be used in SNO+ code. The C++ new and delete statements should be used instead.
+
+\subsection{New and Delete}
+Every memory initialization with the ``new'' must be matched with a ``delete,'' except for some ROOT and Geant4 classes which are managed by the external libraries. Note ROOT (prefix T) and Geant4 (prefix G4) classes are memory mananged, but basic types are not e.g. G4double. SNO+ code should default to not deleting ROOT or Geant4 classes.
+
+Failing to delete something that has been new(ed) will cause a memory leak, as the space in memory is allocated but never freed. Attempting to use a pointer that has been deleted is a common cause of neaky bugs and segmentation faults. As such, it is good practice to then set the value of a pointer to NULL after deleting it:
+\begin{verbatim}
+char* a = new char[10];
+delete[] a;
+a = NULL;
+\end{verbatim}
+
+\subsection{Single Line Conditionals}
+The use of single line conditionals (ternary operators) in SNO+ code is discouraged. A single line conditional reads like:
+\begin{verbatim}
+// ternary expression
+a = ( b > c ) ? b : c;
+
+// standard expression
+if(b > c)
+    a = b;
+else
+    a = c;
+\end{verbatim}
+Single line conditionals are notoriously unreadable, and if used should always be accompanied with an explanatory comment.
+
+\subsection{Pre-increment}
+Pre-increments should never used in for loops, where they are misleading. Pre-increments here falsely suggest that the loop variable is increased before each loop. For example the for loop below falsely suggests i goes from 1 to 9 inclusive, when indeed it goes from 0 to 9:
+\begin{verbatim}
+for(int i = 0; i < 10; ++i)
+\end{verbatim}
+
+Prefix operators including pre-increment are preferred, however, for non-native types (where relevant). When incrementing a class instance ``A'' (assuming a + operator is defined), ``A++'' makes a temporary copy while ``++A'' does not.
+
+\subsection{Random Numbers and Constants}
+Random numbers in RAT should be obtained with the CLHEP random number generator, not ROOT. Only the CLHEP generator is properly initialized with RAT's random seed. Available functions include CLHEP::RandFlat, CLHEP::RandPoisson, CLHEP::RandExponential, and several others.
+
+A new function, RAT::gRandom() will soon be added and will then become the standard generator.
+
+\subsection{ROOT}
+ROOT classes should only be used in RAT when necessary, namely for histogramming and data structure operations. The C++ standard library defines many common math operations, object container types, etc.; these should be used whenever possible.
+
+In particular, ROOT object container types such as TClonesArray should be avoided.
+\subsection{STL}
+The standard template library is exceptionally useful and should be used in SNO+ code whenever possible.
+\begin{itemize}
+\item Use std::vector$<$T$>$ instead of C style arrays
+\item Use std::string instead of char*
+\end{itemize}
+
+All strings in the SNO+ code should be STL strings rather than C-style character arrays. They should be copied with C++'s stringstream, and manipulated with STL string functions. Other string function implementations such as those in GLG4StringUtil should be considered deprecated.
+
+\subsection{General Tips}
+\begin{itemize}
+\item Avoid pointers where possible. Pass by reference is often a better solution.
+\item Use double in preference to float.
+\item Ask the CIC for comments.
+\end{itemize}
+
+\input{CodingStyle.tex}
+
+\section{Example Code Declaration File}
+\label{sec:ExampleDec}
+{\bf File:} src/geo/PMT/BucketConstructor.hh
+\begin{Verbatim}[gobble=0,numbers=left]
+////////////////////////////////////////////////////////////////////////
+/// \class RAT::BucketConstructor
+///
+/// \brief   Class that contructs the Bucket Logical Volume using \n
+///          the bucket parameters
+///
+/// \author  Phil Jones <p.jones22@physics.ox.ac.uk>
+///
+/// REVISION HISTORY:\n
+///     07/09 : P.Jones - First Revision, new file. \n
+///
+/// \detail  Takes the bucket parameters and constructs a bucket \n
+///          solid and places it into a logical volume
+///
+////////////////////////////////////////////////////////////////////////
+
+
+#ifndef __RAT_BucketConstructor__
+#define __RAT_BucketConstructor__
+
+#include <RAT/BucketConstructorParams.hh>
+#include <RAT/ConstructorBase.hh>
+
+#include <string>
+
+class G4LogicalVolume;
+
+namespace RAT
+{
+
+class BucketConstructor : public ConstructorBase
+{
+public:
+    /// Constructor for the class, needs parameters and a name
+    BucketConstructor(const std::string &prefix, /// <Prefix string
+                      const BucketConstructorParams &params ); /// <Parameters that define the bucket
+
+    /// Constructs the logical volume
+    void Construct();
+
+    /// Returns the Max height above the pmt equator of the bucket
+    G4double GetMaxHeight();
+
+    /// Returns the Max depth below the pmt equator of the bucket (note returns a -ive number)
+    G4double GetMaxDepth();
+
+    /// Returns the radius of the bucket, for a hex shape this is the distance of the plane that has \n
+    /// a normal that passes through the origin (See G4Polyhedra definition).
+    G4double GetHexRadius();
+
+    /// Returns the offset from the pmt equator (in Z) where the bucket should be placed
+    G4double GetOffset();
+
+    /// Returns the logical volume for the bucket
+    G4LogicalVolume* GetLogicalVolume();
+
+protected:
+    std::string fPrefix;/// <Prefix string for naming the bucket geometry
+    BucketConstructorParams fBucketParameters;/// <Parameters needed to construct
+    G4LogicalVolume* fBucketLogic;/// <The completed logical volume
+
+private:
+    /// To prevent usage
+    BucketConstructor();
+};
+
+} // namespace RAT
+
+#endif
+\end{Verbatim}
+
+\section{Example Code Definition File}
+\label{sec:ExampleDef}
+{\bf File:} src/geo/PMT/BucketConstructor.cc
+\begin{Verbatim}[gobble=0,numbers=left]
+#include <RAT/BucketConstructor.hh>
+#include <RAT/Log.hh>
+
+#include <G4Polyhedra.hh>
+#include <G4LogicalVolume.hh>
+#include <G4VisAttributes.hh>
+#include <G4OpticalSurface.hh>
+#include <G4SubtractionSolid.hh>
+#include <G4Tubs.hh>
+
+namespace RAT
+{
+
+BucketConstructor::BucketConstructor(const std::string &prefix,
+                                     const BucketConstructorParams &params)
+{
+    fPrefix = prefix + std::string(``_bucket'');
+    fBucketParameters = params;
+    fBucketLogic = NULL;
+}
+
+void BucketConstructor::Construct()
+{
+    // Some G4 quirk requires this method
+    const G4int nPoints = fBucketParameters.fEdgeZCoord.size();
+    G4double *rInner = new G4double[nPoints];
+    G4double *zCoord = new G4double[nPoints];
+    G4double *rOuter = new G4double[nPoints];
+
+    G4int iLoop;
+    for(iLoop=0; iLoop < nPoints; iLoop++) {
+        rInner[iLoop] = fBucketParameters.fInnerEdgeRhoCoord[iLoop];
+        zCoord[iLoop] = fBucketParameters.fEdgeZCoord[iLoop];
+        rOuter[iLoop] = fBucketParameters.fOuterEdgeRhoCoord[iLoop] - 2.0 * PMTGeo::kFaceGap;
+    }
+
+    zCoord[0] -= 2.0 * PMTGeo::kFaceGap;
+    zCoord[nPoints-1] += 2.0 * PMTGeo::kFaceGap;
+
+    const G4int numHexEdges = 6;
+    // Create a hex shell that is the majority of the bucket/panel-sub-part
+    G4Polyhedra* bucketOuter = new G4Polyhedra(fPrefix + ``_outer'',
+                                               0,
+                                               twopi,
+                                               numHexEdges,
+                                               nPoints,
+                                               zCoord,
+                                               rInner,
+                                               rOuter);
+    delete[] rInner;
+    delete[] zCoord;
+    delete[] rOuter;
+
+    G4VSolid* topHoleSolid = NULL;
+
+    if(fBucketParameters.fTopHexRadius == 0.0) { // Then circular opening
+        // Create a solid that represents the top hole (Conc opening)
+        topHoleSolid = new G4Tubs(``_top_hole'',
+                                  0.0,
+                                  fBucketParameters.fTopHoleRadius,
+                                  fBucketParameters.fTopHoleDepth,
+                                  0.0,
+                                  twopi);
+    }
+    else if( fBucketParameters.fTopHoleRadius == 0.0 ) { // Then hex opening
+        G4double zCoord[] = {fBucketParameters.fTopHoleDepth, -fBucketParameters.fTopHoleDepth};
+        G4double rInner[] = {0.0, 0.0};
+        G4double rOuter[] = {fBucketParameters.fTopHexRadius, fBucketParameters.fTopHexRadius};
+        topHoleSolid = new G4Polyhedra(``_top_hole'', M_PI / 18.0 * rad, twopi,
+                                       fBucketParameters.fNumPetals,
+                                       2,
+                                       zCoord,
+                                       rInner,
+                                       rOuter );
+    }
+    else
+        Log::Die(``BucketConstructor::BucketConstructor: Unclear top opening type.'');
+
+    // Create a solid that represents the bottom hole (PMT base opening)
+    G4Tubs *bottomHoleSolid = new G4Tubs(``_bottom_hole'',
+                                         0.0,
+                                         fBucketParameters.fBottomHoleRadius,
+                                         fBucketParameters.fBottomHoleDepth,
+                                         0.0,
+                                         twopi);
+
+    // Remove the top hole
+    G4SubtractionSolid *bucketTopSolid = new G4SubtractionSolid(``_top_temp'',
+                                                                bucketOuter,
+                                                                topHoleSolid,
+                                                                0,
+                                                                G4ThreeVector (0, 0, fBucketParameters.fEdgeZCoord.front()));
+
+    // Remove the bottom hole
+    G4SubtractionSolid *bucketSolid = new G4SubtractionSolid(fPrefix + ``_solid'',
+                                                             bucketTopSolid,
+                                                             bottomHoleSolid,
+                                                             0,
+                                                             G4ThreeVector (0, 0, fBucketParameters.fEdgeZCoord.back()));
+
+    fBucketLogic = new G4LogicalVolume(bucketSolid, fBucketParameters.fBulkMaterial, fPrefix + ``_logic'');
+
+    // Visualization attributes
+    if( fBucketParameters.fSimpleVisualisation ) {
+        fBucketLogic->SetVisAttributes( G4VisAttributes::Invisible );
+    }
+    else {
+        fBucketLogic->SetVisAttributes( G4Color(0.1,0.1,0.1,1.) );
+    }
+}
+
+G4LogicalVolume* BucketConstructor::GetLogicalVolume()
+{
+    if(fBucketLogic == NULL)
+        Log::Die(``BucketConstructor::GetLogicalVolume: Construct has not been called.'');
+    return fBucketLogic;
+}
+
+G4double BucketConstructor::GetMaxHeight()
+{
+    //Above PMT equator, order of EdgeZCoord matters
+    return fBucketParameters.fEdgeZCoord.front() - 2.0 * PMTGeo::kFaceGap;
+}
+
+G4double BucketConstructor::GetMaxDepth()
+{
+    //Below PMT equator, order of EdgeZCoord matters
+    return fBucketParameters.fEdgeZCoord.back() + 2.0 * PMTGeo::kFaceGap;
+}
+
+G4double BucketConstructor::GetHexRadius()
+{
+    // Radius is assumed constant
+    return fBucketParameters.fOuterEdgeRhoCoord.front() - 2.0 * PMTGeo::kFaceGap;
+}
+
+G4double BucketConstructor::GetOffset()
+{
+    return fBucketParameters.fOffset;
+}
+
+} // namespace RAT
+\end{Verbatim}
+
+\end{document}
+

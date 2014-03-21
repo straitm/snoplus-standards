@@ -1,0 +1,114 @@
+\section{Coding Style}
+\subsection{File naming}
+Within RAT all file names should follow the UpperCamelCase format, while all folder names should be lowercase using underscores as spaces (e.g. ``deapclean\_geo''). Definition (header) files must have the extension .hh and declaration (code) files the extension .cc. Files that declare or define classes should be given the same name as the class.
+
+Within the tools directory the same standard applies, however for ROOT macro files the extension should be .c if the file is executed via a .X command, .cpp if executed via a .L command, or .cc if the file must be compiled via a .L [FileName]+ command.
+
+ratdb file names should be uppercase and match the name of the table within. Large files should be split by index and called TABLENAME\_index.ratdb.
+
+In the python directory, file names are lower case and split by underscores e.g. file\_name.py.
+
+Consistent file naming reduces the time taken to identify a file's purpose. 
+
+\subsection{File Header Comments}
+Within RAT all declaration (header) files must have a header doxygen comment as below:
+\begin{verbatim}
+////////////////////////////////////////////////////////////////////////
+/// \class namespace::classname
+///
+/// \brief   A brief description should go here.
+///          It ends with the first blank line.
+///
+/// \author name <email>
+///
+/// REVISION HISTORY:\n
+///     date : name - change 1 \n
+///     date : name - change 2 \n
+///
+/// \detail A more detailed description goes here.
+/// Use as many lines as you like. \n ends a line
+///
+////////////////////////////////////////////////////////////////////////
+\end{verbatim}
+Definition (source) files do not need this, as they will have a related declaration (header) file that does.
+
+Source files having no related header file should have the above comment block (except with \textbackslash class switched to \textbackslash file).
+
+The header comment and public interface together should give a user a good idea of what the class does and how to use it.
+
+\subsection{\#include file order and style}
+The include statements use the C++ style of angle brackets rather than quotation marks. The include statements themselves are ordered such that CLHEP comes first then in descending order, GEANT4, ROOT, RAT, STL and C headers with a line space between.
+
+The C style quotation marks and C++ angle brackets cause the compiler to search for the file in different ways, the angle brackets is prefered as it will ensure only files on the -I include path are found. A common include order helps understand which part of RAT or external library the file is included from.
+
+\subsection{Class naming}
+As with file names the classes follow UpperCamelCase naming.
+
+\subsection{Public, Protected, Private ordering}
+Within a class declaration, public methods should come first, followed by protected, then private. Having the methods declared in this order saves time while finding them.
+
+\subsection{Method Ordering}
+Within the general ``public, protected, then private'' ordering, RAT classes have their constructor then destructor set first. Methods should then be ordered with constructor/initialiser methods first, then usage methods, then destructive methods. Methods should be declared before members.
+
+\subsection{Function and Method Naming}
+Functions and methods should follow UpperCamelCase naming, for consistency with ROOT and GEANT4.
+
+\subsection{Method parameter naming}
+Method parameters should follow lowerCamelCase naming.
+
+\subsection{Paramter ordering}
+Parameters should be written with input first and output last. For example:
+\begin{verbatim}
+int MyFunction(int input1, double input2, string &inout, int &output);
+\end{verbatim} 
+
+\subsection{Inline functions}
+For functions that are one line long, such as ``return x;'', write the function within the class header. If the function, though short, spans multiple lines, write it below the class declaration using the inline keyword:
+\begin{verbatim}
+class A
+{
+    double B();
+}
+
+inline double A::B()
+{
+    // code here
+}
+\end{verbatim}
+A large function defined within a class declaration reduces the readability, whereas the inline keyword and definition below the class declaration is much easier to follow. Remember that functions declared inline are copied around to where they are called, leading to a possible trade-off between higher performance and higher memory usage.
+
+\subsection{Basic types}
+RAT uses a mixture of standard C++ types, ROOT types, and GEANT4 types where appropriate. Specifically, ROOT types (e.g. Double\_t) are used in the data structure (DS classes), since they are written to disk in ROOT format. GEANT4 types (e.g. G4double) are used in parts of RAT that interact with GEANT4 classes -- geometry, generators, and Gsim. Everywhere else, standard C++ types (e.g. double) should be used.
+
+Additional types with explicit size, such uint32\_t and int64\_t,  are provided in stdint.h. These may be used when variable size is critical (e.g. simulating a 32-bit register in the DAQ), but should otherwise be avoided in favor of traditional integer types (int, long, unsigned, etc.).
+\subsection{Class member naming}
+Class members should prefixed with a lower case f and then follow UpperCamelCase e.g. fElectronEnergy.
+
+\subsection{Namespace closing}
+When closing a namespace add a comment with the format ``// namespace name'' where name is the namespace name. For example:
+\begin{verbatim}
+namespace RAT
+{
+ double mouse;
+} // namespace RAT
+\end{verbatim}
+
+This makes it clear which declarations lie within the namespace.
+
+\subsection{Indenting}
+RAT code should be indented based on scope, with tabs turned into four spaces. This improves readability and ensures all editors display the code with the same identation. Tabs should be avoided, since different editors will handle them differently. Most editors can be set to replace the tab character with spaces.
+
+\subsection{Commenting Code}
+Only the C++ style // and not the C style /* ... */ should be used in RAT, since the latter cannot be commented around. Class methods should be preceded by a doxygen comment line starting with ///, and class members should be followed by a doxygen ///$<$ comment:
+\begin{verbatim}
+class A
+{
+/// Integrate the distribution with the Rorschach-Holtzman method
+double InkblotIntegral();
+
+double fAnswer; /// <The answer to life, the universe, and everything
+}
+\end{verbatim}
+
+Note that //! causes ROOT to ignore the member when building the dictionary.
+
